@@ -22,7 +22,8 @@ EventHandler::EventHandler() {
     m_workerThread.start();
 
     m_deviceName =  new MGConfItem("/uk/co/piggz/taskswitcher/deviceName", this);
- 
+    m_lockOrientation =  new MGConfItem("/uk/co/piggz/taskswitcher/lockOrientationOnConnect", this);
+
     //Start a timer to check for BT keyboard
     m_timer = new QTimer(this);
     connect(m_timer, &QTimer::timeout, this, &EventHandler::checkForDevice);
@@ -41,7 +42,10 @@ void EventHandler::startWorker(const QString &device)
 
     QDBusInterface iface(SERVICE_NAME, "/", "", QDBusConnection::sessionBus());
     iface.call("showKeyboardConnectionNotification", true);
-    iface.call("setOrientationLock", "landscape");
+
+    if(m_lockOrientation->value().toBool()){
+        iface.call("setOrientationLock", "landscape");
+    }
 
     start(device);
 }

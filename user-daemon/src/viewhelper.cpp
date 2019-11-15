@@ -139,7 +139,9 @@ void ViewHelper::showWindow()
         //qDebug() << "Looking for " << cmd;
         for (int i = 0; i < desktopFiles.count(); i++) {
             //Check if the command is in the desktop with a param, or at the end or is an android style exec
-            if (desktopFiles.at(i).toMap()["exec"].toString().contains(cmd + " ") || desktopFiles.at(i).toMap()["exec"].toString().split(" ").contains(cmd)  || desktopFiles.at(i).toMap()["exec"].toString().contains(cmd + "/")) {
+            if (desktopFiles.at(i).toMap()["exec"].toString().split(" ").contains(cmd)  ||
+                    desktopFiles.at(i).toMap()["exec"].toString().split(" ").contains("/usr/bin/" + cmd)  ||
+                    desktopFiles.at(i).toMap()["exec"].toString().contains(cmd + "/")) { //Android application
                 qDebug() << "Found a running app:" << cmd << desktopFiles.at(i).toMap()["exec"].toString() << desktopFiles.at(i).toMap()["desktop"].toString();
                 runningDesktopFiles << desktopFiles.at(i).toMap()["desktop"].toString();
                 if (!appsDesktopFiles.contains(desktopFiles.at(i).toMap()["desktop"].toString())) {

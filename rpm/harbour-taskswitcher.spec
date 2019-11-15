@@ -11,7 +11,7 @@ Name:       harbour-taskswitcher
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary:    Keyboard taskswitcher
-Version:    0.3
+Version:    0.5
 Release:    1
 Group:      Qt/Qt
 License:    LICENSE
@@ -32,7 +32,6 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  qt5-qttools-linguist
 
 Requires:   sailfishsilica-qt5 >= 0.10.9
-Requires:   ambienced
 
 %description
 %{summary}
@@ -61,30 +60,8 @@ desktop-file-install --delete-original \
 %attr(755,root,root) %{_bindir}/harbour-taskswitcher-user
 %{_datadir}/harbour-taskswitcher-user/
 %{_datadir}/applications
+%{_datadir}/icons/hicolor/*/apps/%{name}-user.png
 /usr/lib/systemd/user/harbour-taskswitcher.service
 /usr/lib/systemd/user/harbour-taskswitcher-user.service
+%{_datadir}/jolla-settings/entries/
 
-%post
-# Enable and start services
-systemctl --user daemon-reload
-systemctl --user enable harbour-taskswitcher.service
-systemctl --user enable harbour-taskswitcher-user.service
-systemctl --user start harbour-taskswitcher.service
-systemctl --user start harbour-taskswitcher-user.service
-
-%pre
-# In case of update, stop first
-if [ "$1" = "2" ]; then
-    systemctl --user stop harbour-taskswitcher.service
-    systemctl --user stop harbour-taskswitcher-user.service
-fi
-exit 0
-
-%preun
-# in case of complete removal, stop and disable
-if [ "$1" = "0" ]; then
-    systemctl --user stop harbour-taskswitcher.service
-    systemctl --user stop harbour-taskswitcher-user.service
-    systemctl --user disable harbour-taskswitcher.service
-    systemctl --user disable harbour-taskswitcher-user.service
-fi
