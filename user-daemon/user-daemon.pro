@@ -19,7 +19,7 @@ INSTALLS += target \
 SAILFISHAPP_ICONS = 86x86 108x108 128x128 172x172
 
 SOURCES += \
-    src/tohkbd2user.cpp \
+    src/taskswitcheruser.cpp \
     src/userdaemon.cpp \
     src/viewhelper.cpp \
     src/applauncher.cpp \

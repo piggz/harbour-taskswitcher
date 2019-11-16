@@ -11,6 +11,7 @@ Page {
     property bool serviceRunning
     property bool userserviceRunning
     property bool taskswitcherAutostart
+    property bool taskswitcherUserAutostart
     property bool ready: true
 
     ConfigurationValue {
@@ -23,6 +24,12 @@ Page {
         id:cfgLockOrientation
         key: "/uk/co/piggz/taskswitcher/lockOrientationOnConnect"
         defaultValue: false
+    }
+
+    ConfigurationValue {
+        id:cfgOrientation
+        key: "/uk/co/piggz/taskswitcher/lockOrientation"
+        defaultValue: "dynamic"
     }
 
     DBusInterface {
@@ -105,7 +112,6 @@ Page {
                                   console.log(state)
                                   if (state !== "disabled" && state !== "invalid") {
                                       root.taskswitcherAutostart = true
-                                      quitOnCloseUi.value = false
                                   } else {
                                       root.taskswitcherAutostart = false
                                   }
@@ -117,14 +123,13 @@ Page {
                               function(state) {
                                   console.log(state)
                                   if (state !== "disabled" && state !== "invalid") {
-                                      root.taskswitcherAutostart = true
-                                      quitOnCloseUi.value = false
+                                      root.taskswitcherUserAutostart = true
                                   } else {
-                                      root.taskswitcherAutostart = false
+                                      root.taskswitcherUserAutostart = false
                                   }
                               },
                               function() {
-                                  root.taskswitcherAutostart = false
+                                  root.taskswitcherUserAutostart = false
                               })
         }
 
@@ -151,14 +156,14 @@ Page {
                                                   {"type":"b","value":false},
                                                   {"type":"b","value":false}],
                               function(carries_install_info,changes){
-                                  root.taskswitcherAutostart = true
+                                  root.taskswitcherUserAutostart = true
                                   console.log(carries_install_info,changes)
                               },
                               function() {
-                                  console.log("Enabling error")
+                                  console.log("Enabling user error")
                               }
                               )
-   cfgDeviceName     }
+        }
 
         function disableTaskswitcherUnits() {
             manager.typedCall( "DisableUnitFiles",[{"type":"as","value":["harbour-taskswitcher.service"]},
@@ -174,11 +179,11 @@ Page {
             manager.typedCall( "DisableUnitFiles",[{"type":"as","value":["harbour-taskswitcher-user.service"]},
                                                    {"type":"b","value":false}],
                               function(changes){
-                                  root.taskswitcherAutostart = false
+                                  root.taskswitcherUserAutostart = false
                                   console.log(changes)
                               },
                               function() {
-                                  console.log("Disabling error")
+                                  console.log("Disabling user error")
                               }
                               )
         }
@@ -202,7 +207,7 @@ Page {
                                   runningUpdateTimer.start()
                               },
                               function() {
-                                  console.log("job started failure")
+                                  console.log("job started user failure")
                               })
         }
 
@@ -223,7 +228,7 @@ Page {
                                   taskswitcherUserService.updateProperties()
                               },
                               function() {
-                                  console.log("job stopped failure")
+                                  console.log("job stopped user failure")
                               })
         }
 
@@ -256,7 +261,7 @@ Page {
     Timer {
         // stopping service can result in unit appearing and disappering, for some reason.
         id: pathUpdateTimer
-        interval: 100
+        interval: 200
         onTriggered: manager.updatePath()
     }
 
@@ -281,7 +286,7 @@ Page {
                 description: qsTr("When this is off, you won't get Taskswitcher on boot")
                 enabled: root.ready
                 automaticCheck: false
-                checked: root.taskswitcherAutostart
+                checked: root.taskswitcherAutostart && root.taskswitcherUserAutostart
                 onClicked: {
                     manager.setAutostart(!checked)
                 }
@@ -317,16 +322,16 @@ Page {
                 spacing: Theme.paddingLarge
 
                 Button {
-                    enabled: root.ready && !root.serviceRunning
+                    enabled: root.ready && (!root.serviceRunning || !root.userserviceRunning)
                     text: qsTr("Start daemons")
                     width: (content.width - 2*Theme.horizontalPageMargin - parent.spacing) / 2
                     onClicked: manager.startTaskswitcherUnits()
                 }
 
                 Button {
-                    enabled: root.ready && root.serviceRunning
+                    enabled: root.ready && (root.serviceRunning || root.userserviceRunning)
                     //% "Stop"
-                    text: qsTr("Stop daemosn")
+                    text: qsTr("Stop daemons")
                     width: (content.width - 2*Theme.horizontalPageMargin - parent.spacing) / 2
                     onClicked: manager.stopTaskswitcherUnits()
                 }
@@ -337,24 +342,28 @@ Page {
                 height: Theme.paddingLarge
             }
 
-            TextField {
-                id: fldKeybord
-                width: parent.width - 2 * x
-                height: Theme.itemSizeMedium
-                x:Theme.horizontalPageMargin
+            ComboBox {
+                id: cboKeyboard
                 label: qsTr("Keyboard Device")
 
-                AddAnimation{}
-                placeholderText: label
-                text: cfgDeviceName.value
-                onTextChanged: {
-                    cfgDeviceName.value = text
+                menu: ContextMenu {
+                    id: mnuKeyboard
                 }
+
+                onCurrentIndexChanged: {
+                    value = menu.children[currentIndex].text
+                    cfgDeviceName.value = value;
+                }
+            }
+
+            Component {
+            id: menuItemComp
+            MenuItem {}
             }
 
             TextSwitch {
                 id: fldOrientation
-                text: qsTr("Lock orientation")
+                text: qsTr("Lock Orientation")
                 description: qsTr("Lock orientation when keyboard connects.  Useful for BT keyboards.")
                 automaticCheck: false
                 checked: cfgLockOrientation.value
@@ -362,6 +371,48 @@ Page {
                     cfgLockOrientation.value = !checked
                 }
             }
+
+            ComboBox {
+                id: cboOrientation
+                label: qsTr("Orientation")
+
+                menu: ContextMenu {
+                    MenuItem { text: "landscape" }
+                    MenuItem { text: "landscape-inverted" }
+                    MenuItem { text: "portrait" }
+                    MenuItem { text: "portrait-inverted" }
+                }
+
+                onCurrentIndexChanged: {
+                    cfgOrientation.value = value;
+                }
+            }
         }
+    }
+    Component.onCompleted: {
+        readDevices()
+        cboOrientation.value = cfgOrientation.value
+        cboKeyboard.value = cfgDeviceName.value
+    }
+
+    function readDevices()
+    {
+        var xhr = new XMLHttpRequest;
+        xhr.open("GET", "/proc/bus/input/devices");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                var response = xhr.responseText;
+                var lines = response.split('\n')
+
+                for (var i = 0; i < lines.length; i++){
+                    if (lines[i].substr(0, 8) === "N: Name=") {
+                        var devName = lines[i].substring(lines[i].indexOf("\"") + 1, lines[i].lastIndexOf("\""))
+                        var newMenuItem = menuItemComp.createObject(mnuKeyboard._contentColumn, {"text" : devName})
+                    }
+                }
+            }
+        };
+        xhr.send();
+
     }
 }

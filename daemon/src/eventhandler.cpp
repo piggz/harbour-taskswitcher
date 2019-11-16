@@ -23,6 +23,7 @@ EventHandler::EventHandler() {
 
     m_deviceName =  new MGConfItem("/uk/co/piggz/taskswitcher/deviceName", this);
     m_lockOrientation =  new MGConfItem("/uk/co/piggz/taskswitcher/lockOrientationOnConnect", this);
+    m_orientation =  new MGConfItem("/uk/co/piggz/taskswitcher/lockOrientation", this);
 
     //Start a timer to check for BT keyboard
     m_timer = new QTimer(this);
@@ -44,7 +45,7 @@ void EventHandler::startWorker(const QString &device)
     iface.call("showKeyboardConnectionNotification", true);
 
     if(m_lockOrientation->value().toBool()){
-        iface.call("setOrientationLock", "landscape");
+        iface.call("setOrientationLock", m_orientation->value("dynamic").toString());
     }
 
     start(device);
@@ -80,7 +81,6 @@ void EventHandler::altReleased()
         m_taskSwitcherVisible = false;
         iface.call("hideTaskSwitcher");
     }
-    
 }
 
 void EventHandler::ctrlAltBackspacePressed()
@@ -107,18 +107,12 @@ void EventHandler::workerFinished()
     iface.call("showKeyboardConnectionNotification", false);
     iface.call("setOrientationLock", "dynamic");
 
-
     m_timer->start();
 }
 
 void EventHandler::checkForDevice()
 {
-    QString deviceName = m_deviceName->value().toString(); //"KBMAG7BK";
-
-    if (deviceName.isEmpty()) {
-        deviceName = "Integrated keyboard";
-    }
-    
+    QString deviceName = m_deviceName->value().toString();;
     QString deviceFile = getDeviceFile(deviceName);
 
     qDebug() << "Looking for " << deviceName << "found:" << deviceFile;

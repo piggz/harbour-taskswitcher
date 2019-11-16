@@ -58,7 +58,7 @@ void UserDaemon::quit()
 
 void UserDaemon::setOrientationLock(const QString &value)
 {
-    if (value == "dynamic" || value == "landscape" || value == "portrait")
+    if (value == "dynamic" || value == "landscape" || value == "portrait" || value == "landscape-inverted" || value == "portrait-inverted")
     {
         printf("taskswitcher-user: setting orientation lock to \"%s\"\n", qPrintable(value));
 
@@ -67,7 +67,7 @@ void UserDaemon::setOrientationLock(const QString &value)
     }
     else
     {
-        printf("taskswitcher-user: error: orientation lock can be set only to dynamic, landscape or portrait.\n");
+        printf("taskswitcher-user: error: orientation lock can be set only to dynamic, landscape or portrait (or the inverted variants).\n");
     }
 }
 

@@ -5,7 +5,7 @@
             "path": "system_settings/system/taskswitcher",
             "title": "Taskswitcher",
             "type": "page",
-            "icon": "harbour-taskswitcher-user",
+            "icon": "image://theme/icon-m-keyboard",
             "order": 500,
             "params": {
                 "source": "/usr/share/harbour-taskswitcher-user/settings/TaskswitcherAppSettings.qml"

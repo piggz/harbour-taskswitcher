@@ -34,6 +34,7 @@ private:
     QTimer *m_timer;
     MGConfItem *m_deviceName;
     MGConfItem *m_lockOrientation;
+    MGConfItem *m_orientation;
 
     bool m_taskSwitcherVisible  = false;
     QString getDeviceFile(const QString &name);
