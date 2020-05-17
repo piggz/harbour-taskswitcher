@@ -11,7 +11,7 @@ Name:       harbour-taskswitcher
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary:    Keyboard taskswitcher
-Version:    0.5
+Version:    0.6
 Release:    1
 Group:      Qt/Qt
 License:    LICENSE

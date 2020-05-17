@@ -17,23 +17,29 @@ public:
     ~EventHandler();
     
 private:
-    void startWorker(const QString &device);
-
     Q_SLOT void altTabPressed();
     Q_SLOT void altReleased();
     Q_SLOT void ctrlAltBackspacePressed();
-    Q_SLOT void ctrlAltDeletePressed();        
+    Q_SLOT void ctrlAltDeletePressed();
+    Q_SLOT void keyboardOut();
+    Q_SLOT void keyboardIn();
     
     Q_SLOT void workerFinished(); //probably the device disappeared
-    Q_SLOT void checkForDevice();
+    Q_SLOT bool checkForDevice(const QString &deviceName, Worker *&worker, QThread* thread);
+    Q_SLOT void checkForDevices();
 
-    Q_SIGNAL void start(const QString &device);
+    Q_SLOT void cleanupWorker(QObject *worker);
+    Q_SIGNAL void start();
 
     QThread m_workerThread;
-    Worker *m_worker;
-    QTimer *m_timer;
+    QThread m_workerThread2;
+    Worker *m_worker = nullptr;
+    Worker *m_worker2 = nullptr;
+    QTimer *m_timer = nullptr;
     MGConfItem *m_deviceName;
+    MGConfItem *m_deviceNameSecondary;
     MGConfItem *m_lockOrientation;
+    MGConfItem *m_lockOrientationSlide;
     MGConfItem *m_orientation;
 
     bool m_taskSwitcherVisible  = false;

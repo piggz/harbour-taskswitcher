@@ -12,6 +12,8 @@
 
 #define KEY_RELEASE 0
 #define KEY_PRESS 1
+//#define SW_KEYPAD_SLIDE		0x0a
+
 typedef struct input_event input_event;
 
 /*
@@ -52,10 +54,14 @@ char *getKeyText(uint16_t code, uint8_t shift_pressed) {
     }
 }
 
-void Worker::readKeyboard(const QString &device)
+Worker::Worker(const QString &device) : m_device(device)
 {
-    qDebug() << "opening device:" << device;
-    int kbd_fd = openKeyboardDeviceFile(device.toLocal8Bit().data());
+}
+
+void Worker::start()
+{
+    qDebug() << "opening device:" << m_device;
+    int kbd_fd = openKeyboardDeviceFile(m_device.toLocal8Bit().data());
     qDebug() << "fd:" << kbd_fd;
 
     if (kbd_fd <= 0) {
@@ -102,6 +108,15 @@ void Worker::readKeyboard(const QString &device)
                     emit altReleased();
                 } if (strcmp(name, "<LCtrl>") == 0 || strcmp(name, "<RCtrl>") == 0) {
                     ctrl_pressed = false	;
+                }
+            }
+        } else if (event.type == EV_SW) {
+            //qDebug() << "Switch:" << event.code << event.value;
+            if (event.code == SW_KEYPAD_SLIDE) {
+                if (event.value == KEY_PRESS) {
+                    emit keyboardIn();
+                } else if (event.value == KEY_RELEASE) {
+                    emit keyboardOut();
                 }
             }
         }

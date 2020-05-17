@@ -9,25 +9,17 @@
 
 #define SERVICE_NAME "uk.co.piggz.taskswitcher"
 
-EventHandler::EventHandler() {
-    m_worker = new Worker;
-    m_worker->moveToThread(&m_workerThread);
-    connect(&m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
-    connect(this, &EventHandler::start, m_worker, &Worker::readKeyboard);
-    connect(m_worker, &Worker::altTabPressed, this, &EventHandler::altTabPressed);
-    connect(m_worker, &Worker::altReleased, this, &EventHandler::altReleased);
-    connect(m_worker, &Worker::ctrlAltBackspacePressed, this, &EventHandler::ctrlAltBackspacePressed);
-    connect(m_worker, &Worker::ctrlAltDeletePressed, this, &EventHandler::ctrlAltDeletePressed);
-    connect(m_worker, &Worker::finished, this, &EventHandler::workerFinished);
-    m_workerThread.start();
-
+EventHandler::EventHandler()
+{
     m_deviceName =  new MGConfItem("/uk/co/piggz/taskswitcher/deviceName", this);
+    m_deviceNameSecondary =  new MGConfItem("/uk/co/piggz/taskswitcher/deviceNameSecondary", this);
     m_lockOrientation =  new MGConfItem("/uk/co/piggz/taskswitcher/lockOrientationOnConnect", this);
+    m_lockOrientationSlide =  new MGConfItem("/uk/co/piggz/taskswitcher/lockOrientationOnSlide", this);
     m_orientation =  new MGConfItem("/uk/co/piggz/taskswitcher/lockOrientation", this);
 
     //Start a timer to check for BT keyboard
     m_timer = new QTimer(this);
-    connect(m_timer, &QTimer::timeout, this, &EventHandler::checkForDevice);
+    connect(m_timer, &QTimer::timeout, this, &EventHandler::checkForDevices);
     m_timer->start(10000);
 }
 
@@ -35,20 +27,6 @@ EventHandler::~EventHandler() {
     m_workerThread.quit();
     m_workerThread.wait();
     delete m_deviceName;
-}
-
-void EventHandler::startWorker(const QString &device)
-{
-    m_timer->stop();
-
-    QDBusInterface iface(SERVICE_NAME, "/", "", QDBusConnection::sessionBus());
-    iface.call("showKeyboardConnectionNotification", true);
-
-    if(m_lockOrientation->value().toBool()){
-        iface.call("setOrientationLock", m_orientation->value("dynamic").toString());
-    }
-
-    start(device);
 }
 
 void EventHandler::altTabPressed()
@@ -96,7 +74,21 @@ void EventHandler::ctrlAltDeletePressed()
     qDebug() << "Eventhandler::ctrlAltDeletePressed";
 
     QDBusInterface iface(SERVICE_NAME, "/", "", QDBusConnection::sessionBus());
-    iface.call("actionWithRemorse", ACTION_RESTART_LIPSTICK_REMORSE);   
+    iface.call("actionWithRemorse", ACTION_RESTART_LIPSTICK_REMORSE);
+}
+
+void EventHandler::keyboardOut()
+{
+    qDebug() << "Keyboard out" << m_orientation->value("dynamic").toString();
+    QDBusInterface iface(SERVICE_NAME, "/", "", QDBusConnection::sessionBus());
+    iface.call("setOrientationLock", m_orientation->value("dynamic").toString());
+}
+
+void EventHandler::keyboardIn()
+{
+    qDebug() << "Keyboard in";
+    QDBusInterface iface(SERVICE_NAME, "/", "", QDBusConnection::sessionBus());
+    iface.call("setOrientationLock", "dynamic");
 }
 
 void EventHandler::workerFinished()
@@ -110,16 +102,58 @@ void EventHandler::workerFinished()
     m_timer->start();
 }
 
-void EventHandler::checkForDevice()
+bool EventHandler::checkForDevice(const QString &deviceName, Worker *&worker, QThread* thread)
 {
-    QString deviceName = m_deviceName->value().toString();;
     QString deviceFile = getDeviceFile(deviceName);
-
     qDebug() << "Looking for " << deviceName << "found:" << deviceFile;
 
-    if (deviceFile.startsWith("/dev/input")) {
-        startWorker(deviceFile);
+    if (deviceFile.startsWith("/dev/input") && worker == nullptr) {
+        worker = new Worker(deviceFile);
+        worker->moveToThread(thread);
+        connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+        connect(worker, &Worker::destroyed, this, &EventHandler::cleanupWorker);
+
+        connect(this, &EventHandler::start, worker, &Worker::start);
+        connect(worker, &Worker::altTabPressed, this, &EventHandler::altTabPressed);
+        connect(worker, &Worker::altReleased, this, &EventHandler::altReleased);
+        connect(worker, &Worker::ctrlAltBackspacePressed, this, &EventHandler::ctrlAltBackspacePressed);
+        connect(worker, &Worker::ctrlAltDeletePressed, this, &EventHandler::ctrlAltDeletePressed);
+        connect(worker, &Worker::keyboardIn, this, &EventHandler::keyboardIn);
+        connect(worker, &Worker::keyboardOut, this, &EventHandler::keyboardOut);
+        connect(worker, &Worker::finished, this, &EventHandler::workerFinished);
+
+        thread->start();
+        start();
+        return true;
     }
+    return false;
+}
+
+void EventHandler::checkForDevices()
+{
+    QString deviceName = m_deviceName->value().toString();
+    QString deviceNameSecondary = m_deviceNameSecondary->value().toString();
+
+    if ((!deviceName.isEmpty() || !(deviceName == "None")) && m_worker == nullptr) {
+        if (checkForDevice(deviceName, m_worker, &m_workerThread)) {
+            QDBusInterface iface(SERVICE_NAME, "/", "", QDBusConnection::sessionBus());
+            iface.call("showKeyboardConnectionNotification", true);
+
+            if(m_lockOrientation->value().toBool()){
+                iface.call("setOrientationLock", m_orientation->value("dynamic").toString());
+            }
+        }
+    }
+
+    //Secondary device
+    if ((!deviceNameSecondary.isEmpty() || !(deviceNameSecondary == "None")) && m_worker2 == nullptr) {
+        checkForDevice(deviceNameSecondary, m_worker2, &m_workerThread2);
+    }
+}
+
+void EventHandler::cleanupWorker(QObject *worker)
+{
+    worker = nullptr;
 }
 
 QString EventHandler::getDeviceFile(const QString &name)

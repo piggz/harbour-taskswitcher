@@ -72,15 +72,22 @@ class Worker : public QObject
 {
     Q_OBJECT
 
-public slots:
-    void readKeyboard(const QString &device);
+public:
+    Worker(const QString &device);
+    Q_SLOT void start();
 
 signals:
     void altTabPressed();
     void altReleased();
     void ctrlAltBackspacePressed();
     void ctrlAltDeletePressed();
+    void keyboardOut();
+    void keyboardIn();
     void finished();
+
+private:
+    QString m_device;
+
 };
 
 #endif

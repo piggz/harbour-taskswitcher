@@ -12,7 +12,7 @@ Page {
     property bool userserviceRunning
     property bool taskswitcherAutostart
     property bool taskswitcherUserAutostart
-    property bool ready: true
+    property bool ready: false
 
     ConfigurationValue {
         id:cfgDeviceName
@@ -21,8 +21,20 @@ Page {
     }
 
     ConfigurationValue {
+        id:cfgDeviceNameSecondary
+        key: "/uk/co/piggz/taskswitcher/deviceNameSecondary"
+        defaultValue: ""
+    }
+
+    ConfigurationValue {
         id:cfgLockOrientation
         key: "/uk/co/piggz/taskswitcher/lockOrientationOnConnect"
+        defaultValue: false
+    }
+
+    ConfigurationValue {
+        id:cfgLockOrientationSlide
+        key: "/uk/co/piggz/taskswitcher/lockOrientationOnSlide"
         defaultValue: false
     }
 
@@ -344,7 +356,7 @@ Page {
 
             ComboBox {
                 id: cboKeyboard
-                label: qsTr("Keyboard Device")
+                label: qsTr("Primary Keyboard Device")
 
                 menu: ContextMenu {
                     id: mnuKeyboard
@@ -353,6 +365,20 @@ Page {
                 onCurrentIndexChanged: {
                     value = menu.children[currentIndex].text
                     cfgDeviceName.value = value;
+                }
+            }
+
+            ComboBox {
+                id: cboKeyboardSecondary
+                label: qsTr("Secondary Keyboard Device")
+
+                menu: ContextMenu {
+                    id: mnuKeyboardSecondary
+                }
+
+                onCurrentIndexChanged: {
+                    value = menu.children[currentIndex].text
+                    cfgDeviceNameSecondary.value = value;
                 }
             }
 
@@ -372,31 +398,60 @@ Page {
                 }
             }
 
+            TextSwitch {
+                id: fldOrientationSlide
+                text: qsTr("Lock Orientation on Slide")
+                description: qsTr("Lock orientation when keyboard slides out.")
+                automaticCheck: false
+                checked: cfgLockOrientationSlide.value
+                onClicked: {
+                    cfgLockOrientationSlide.value = !checked
+                }
+            }
+
             ComboBox {
                 id: cboOrientation
                 label: qsTr("Orientation")
 
                 menu: ContextMenu {
+                    id: mnu
+                    MenuItem { text: "dynamic" }
                     MenuItem { text: "landscape" }
                     MenuItem { text: "landscape-inverted" }
                     MenuItem { text: "portrait" }
                     MenuItem { text: "portrait-inverted" }
                 }
 
-                onCurrentIndexChanged: {
-                    cfgOrientation.value = value;
+                onValueChanged: {
+                    if (ready){
+                        cfgOrientation.value = value;
+                    }
+                }
+
+                function setIndexOf(val) {
+                    console.log("Looking for", val);
+                    for (var i = 0; i < mnu.children.length; i++) {
+                        console.log(i, mnu.children[i].text);
+                        if (mnu.children[i].text == val) {
+                            currentIndex = i;
+                        }
+                    }
                 }
             }
         }
     }
     Component.onCompleted: {
         readDevices()
-        cboOrientation.value = cfgOrientation.value
+        cboOrientation.setIndexOf(cfgOrientation.value)
         cboKeyboard.value = cfgDeviceName.value
+        cboKeyboardSecondary.value = cfgDeviceNameSecondary.value
+        ready = true;
     }
 
     function readDevices()
     {
+        menuItemComp.createObject(mnuKeyboard._contentColumn, {"text" : "None"})
+        menuItemComp.createObject(mnuKeyboardSecondary._contentColumn, {"text" : "None"})
         var xhr = new XMLHttpRequest;
         xhr.open("GET", "/proc/bus/input/devices");
         xhr.onreadystatechange = function() {
@@ -408,6 +463,7 @@ Page {
                     if (lines[i].substr(0, 8) === "N: Name=") {
                         var devName = lines[i].substring(lines[i].indexOf("\"") + 1, lines[i].lastIndexOf("\""))
                         var newMenuItem = menuItemComp.createObject(mnuKeyboard._contentColumn, {"text" : devName})
+                        var newMenuItemS = menuItemComp.createObject(mnuKeyboardSecondary._contentColumn, {"text" : devName})
                     }
                 }
             }
