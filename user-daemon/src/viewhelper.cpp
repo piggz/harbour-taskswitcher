@@ -111,7 +111,7 @@ void ViewHelper::showWindow()
     
     //2. get a list of running processes
     QProcess ps;
-    ps.start("ps", QStringList() << "ax" << "-o" << "cmd=");
+    ps.start("ps", QStringList() << "ax" << "-o" << "args=");
     ps.waitForFinished();
     QStringList pr = QString(ps.readAllStandardOutput()).split("\n");
 
