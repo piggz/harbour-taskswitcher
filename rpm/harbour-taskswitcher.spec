@@ -11,10 +11,10 @@ Name:       harbour-taskswitcher
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
 Summary:    Keyboard taskswitcher
-Version:    0.6
+Version:    0.6.2
 Release:    1
 Group:      Qt/Qt
-License:    LICENSE
+License:    MIT
 URL:        https://github.com/piggz/harbour-taskswitcher
 Source0:    %{name}-%{version}.tar.bz2
 
@@ -34,7 +34,34 @@ BuildRequires:  qt5-qttools-linguist
 Requires:   sailfishsilica-qt5 >= 0.10.9
 
 %description
-%{summary}
+This is an alt-tab switching application useful with BT keyboards on the Jolla Tablet and devices with fixed keyboards
+like the Gemini PDA or Fxtec Pro1.
+
+Instructions
+*Install the application
+*Open jolla-settings and select Taskswitcher
+*Ensure your keyboard is on and paired if BT
+*Select your keyboard
+*If you want to force an orientation when the keyboard is detected, select these options
+*If you want to start the service on boot, select the option
+*Start the services using the button
+
+%if "%{?vendor}" == "chum"
+PackageName: Taskswitcher
+Type: generic
+DeveloperName: Adam Pigg
+Categories:
+ - Utility
+ - System
+Custom:
+  Repo: https://github.com/piggz/harbour-taskswitcher
+Icon: https://raw.githubusercontent.com/piggz/harbour-taskswitcher/master/user-daemon/harbour-taskswitcher-user.png
+Url:
+  Homepage: https://github.com/piggz/harbour-taskswitcher
+  Help: https://github.com/piggz/harbour-taskswitcher/discussions
+  Bugtracker: https://github.com/piggz/harbour-taskswitcher/issues
+  Donation: https://www.paypal.me/piggz
+%endif
 
 %prep
 %setup -q -n %{name}-%{version}
